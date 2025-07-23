@@ -489,6 +489,16 @@ struct Config {
   // If an input file matches a wildcard pattern, remap it to the value.
   llvm::SmallVector<std::pair<llvm::GlobPattern, llvm::StringRef>, 0>
       remapInputsWildcards;
+
+  // PS4/Orbis-specific configuration options
+  llvm::StringRef orbisAuthInfo;    // Authentication info hex string
+  bool orbisEboot = false;          // Generate eboot
+  bool orbisPrx = false;            // Generate PRX
+  uint32_t orbisSdkVersion = 0;     // SDK version
+  llvm::StringRef orbisProgramType; // Program type
+  uint64_t orbisProgramAuthId = 0;  // Program authentication ID
+  uint32_t orbisAppVersion = 0;     // Application version
+  uint32_t orbisFirmwareVersion = 0; // Firmware version
 };
 
 // Some index properties of a symbol are stored separately in this auxiliary

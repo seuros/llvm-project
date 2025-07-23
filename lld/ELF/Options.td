@@ -801,6 +801,13 @@ defm check_dynamic_relocations: BB<"check-dynamic-relocations",
 
 defm load_pass_plugins: EEq<"load-pass-plugin", "Load passes from plugin library">;
 
+// PS4/Orbis-specific options
+defm auth_info: Eq<"auth-info", "PS4 authentication info (hex string)">;
+def eboot: F<"eboot">,
+  HelpText<"Generate PS4 eboot executable">;
+def prx: F<"prx">,
+  HelpText<"Generate PS4 PRX library">;
+
 // Hidden options, used by clang's -fsanitize=memtag-* options to emit an ELF
 // note to designate what kinds of memory (stack/heap) should be protected using
 // ARM's MTE on armv8.5+. A binary's desire for stack MTE can't be obtained

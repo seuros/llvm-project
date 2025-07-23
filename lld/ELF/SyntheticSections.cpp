@@ -1610,6 +1610,14 @@ DynamicSection<ELFT>::computeContents() {
   if (ctx.arg.emachine == EM_PPC64)
     addInt(DT_PPC64_OPT, ctx.target->ppc64DynamicSectionOpt);
 
+  // ----- Start OpenOrbis Changes -----
+  // Add PS4-specific dynamic entries
+  if (ctx.arg.osabi == ELFOSABI_PS4) {
+    if (part.sceDynlibdataFingerprint && part.sceDynlibdataFingerprint->isNeeded())
+      addInSec(DT_SCE_FINGERPRINT, *part.sceDynlibdataFingerprint);
+  }
+  // ----- End OpenOrbis Changes -----
+
   addInt(DT_NULL, 0);
   return entries;
 }
@@ -4832,6 +4840,15 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
 
       add(*part.dynamic);
       add(*part.dynStrTab);
+      
+      // ----- Start OpenOrbis Changes -----
+      // Add PS4-specific fingerprint section
+      if (ctx.arg.osabi == ELFOSABI_PS4) {
+        part.sceDynlibdataFingerprint = 
+          std::make_unique<SceDynlibdataFingerprintSection<ELFT>>(ctx);
+        add(*part.sceDynlibdataFingerprint);
+      }
+      // ----- End OpenOrbis Changes -----
     }
     add(*part.relaDyn);
 
@@ -4982,6 +4999,37 @@ template <class ELFT> void elf::createSyntheticSections(Ctx &ctx) {
     add(*ctx.in.strTab);
 }
 
+// ----- Start OpenOrbis Changes -----
+template <class ELFT>
+SceDynlibdataFingerprintSection<ELFT>::SceDynlibdataFingerprintSection(Ctx &ctx)
+    : SyntheticSection(ctx, ".sce_fingerprint", SHT_PROGBITS, 
+                       SHF_ALLOC | SHF_WRITE, 8) {}
+
+template <class ELFT>
+void SceDynlibdataFingerprintSection<ELFT>::finalizeContents() {
+  // PS4 fingerprint section is 24 bytes
+  size = 24;
+}
+
+template <class ELFT>
+void SceDynlibdataFingerprintSection<ELFT>::writeTo(uint8_t *buf) {
+  // Write PS4 fingerprint data
+  // Format: 8 bytes unknown + 16 bytes fingerprint
+  memset(buf, 0, size);
+  
+  // TODO: Calculate actual fingerprint based on PS4 requirements
+  // For now, write placeholder data
+  write64(ctx, buf, 0x0000000000000001);  // Unknown field
+  // 16-byte fingerprint would go at buf + 8
+}
+
+template <class ELFT>
+bool SceDynlibdataFingerprintSection<ELFT>::isNeeded() const {
+  // PS4 fingerprint section is always needed for PS4 binaries
+  return ctx.arg.osabi == ELFOSABI_PS4;
+}
+// ----- End OpenOrbis Changes -----
+
 template void elf::splitSections<ELF32LE>(Ctx &);
 template void elf::splitSections<ELF32BE>(Ctx &);
 template void elf::splitSections<ELF64LE>(Ctx &);
@@ -5015,3 +5063,10 @@ template void elf::createSyntheticSections<ELF32LE>(Ctx &);
 template void elf::createSyntheticSections<ELF32BE>(Ctx &);
 template void elf::createSyntheticSections<ELF64LE>(Ctx &);
 template void elf::createSyntheticSections<ELF64BE>(Ctx &);
+
+// ----- Start OpenOrbis Changes -----
+template class elf::SceDynlibdataFingerprintSection<ELF32LE>;
+template class elf::SceDynlibdataFingerprintSection<ELF32BE>;
+template class elf::SceDynlibdataFingerprintSection<ELF64LE>;
+template class elf::SceDynlibdataFingerprintSection<ELF64BE>;
+// ----- End OpenOrbis Changes -----

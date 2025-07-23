@@ -10,15 +10,21 @@
 #define LLD_ELF_WRITER_H
 
 #include "Config.h"
+#include <vector>
 
 namespace lld::elf {
 class OutputSection;
+class PhdrEntry;
+
 void copySectionsIntoPartitions(Ctx &ctx);
 template <class ELFT> void writeResult(Ctx &ctx);
 
 void addReservedSymbols(Ctx &ctx);
 bool includeInSymtab(Ctx &, const Symbol &);
 unsigned getSectionRank(Ctx &, OutputSection &osec);
+
+// PS4/Orbis-specific program headers
+extern std::vector<PhdrEntry*> scePhdrEntries;
 
 } // namespace lld::elf
 

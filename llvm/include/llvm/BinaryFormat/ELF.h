@@ -1568,9 +1568,12 @@ enum {
 
   // ----- Start OpenOrbis Changes -----
   // PS4 program header types
-  PT_SCE_DYNLIBDATA = 0x61000000, // PS4 dynamic linking data
-  PT_SCE_PROC_PARAM = 0x61000001, // PS4 process parameters
-  PT_SCE_RELRO = 0x61000010,      // PS4 read-only relocations
+  PT_SCE_DYNLIBDATA = 0x61000000,   // PS4 dynamic linking data
+  PT_SCE_PROC_PARAM = 0x61000001,   // PS4 process parameters
+  PT_SCE_MODULE_PARAM = 0x61000002, // PS4 module parameters
+  PT_SCE_RELRO = 0x61000010,        // PS4 read-only relocations
+  PT_SCE_COMMENT = 0x6fffff00,      // PS4 comment
+  PT_SCE_VERSION = 0x6fffff01,      // PS4 version
   // ----- End OpenOrbis Changes -----
 };
 

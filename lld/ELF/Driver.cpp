@@ -30,6 +30,7 @@
 #include "LTO.h"
 #include "LinkerScript.h"
 #include "MarkLive.h"
+#include "Orbis.h"
 #include "OutputSections.h"
 #include "ScriptParser.h"
 #include "SymbolTable.h"
@@ -78,6 +79,94 @@ using namespace llvm::sys;
 using namespace llvm::support;
 using namespace lld;
 using namespace lld::elf;
+
+// PS4/Orbis-specific program headers
+std::vector<PhdrEntry*> lld::elf::scePhdrEntries;
+
+// PS4/Orbis-specific functions
+namespace lld::elf {
+
+std::vector<uint8_t> orbisCreateSignature(StringRef authInfo, uint64_t paid) {
+  std::vector<uint8_t> signature(ORBIS_SIGNATURE_SIZE, 0);
+  
+  // Convert hex string to bytes
+  std::vector<uint8_t> authInfoBytes;
+  if (!authInfo.empty()) {
+    for (size_t i = 0; i < authInfo.size(); i += 2) {
+      unsigned int byte;
+      if (authInfo.substr(i, 2).getAsInteger(16, byte))
+        return signature; // Return empty signature on error
+      authInfoBytes.push_back(static_cast<uint8_t>(byte));
+    }
+  }
+  
+  // Create signature: size (8 bytes) + PAID (8 bytes) + auth info bytes
+  size_t authInfoSize = authInfoBytes.size();
+  memcpy(signature.data(), &authInfoSize, sizeof(authInfoSize));
+  memcpy(signature.data() + 8, &paid, sizeof(paid));
+  if (!authInfoBytes.empty()) {
+    memcpy(signature.data() + 16, authInfoBytes.data(), 
+           std::min(authInfoBytes.size(), size_t(ORBIS_SIGNATURE_SIZE - 16)));
+  }
+  
+  return signature;
+}
+
+std::vector<self_entry_info_t> createSelfEntries(const std::vector<PhdrEntry*>& phdrs) {
+  std::vector<self_entry_info_t> entries;
+  uint16_t segmentIndex = 0;
+  
+  for (const PhdrEntry* phdr : phdrs) {
+    // Only process PT_LOAD, PT_SCE_RELRO, and PT_SCE_DYNLIBDATA
+    if (phdr->p_type != PT_LOAD && 
+        phdr->p_type != PT_SCE_RELRO && 
+        phdr->p_type != PT_SCE_DYNLIBDATA)
+      continue;
+    
+    // Create meta entry
+    self_entry_info_t metaEntry;
+    metaEntry.offset = 0; // Will be calculated later
+    metaEntry.size = 0;
+    metaEntry.isSegment = false;
+    metaEntry.hasBlocks = false;
+    metaEntry.segmentIndex = segmentIndex;
+    metaEntry.hasDigest = true;
+    metaEntry.isBlocked = false;
+    metaEntry.blockSize = 0;
+    metaEntry.blockCount = 0;
+    entries.push_back(metaEntry);
+    
+    // Create data entry
+    self_entry_info_t dataEntry;
+    dataEntry.offset = phdr->p_offset;
+    dataEntry.size = phdr->p_filesz;
+    dataEntry.isSegment = true;
+    dataEntry.hasBlocks = (phdr->p_filesz > 0);
+    dataEntry.segmentIndex = segmentIndex;
+    dataEntry.hasDigest = false;
+    dataEntry.isBlocked = true;
+    dataEntry.blockSize = BLOCK_SIZE;
+    dataEntry.blockCount = (phdr->p_filesz + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    entries.push_back(dataEntry);
+    
+    segmentIndex++;
+  }
+  
+  return entries;
+}
+
+void writeSelf(uint8_t *buf) {
+  // TODO: Implement SELF file writing
+  // This needs to:
+  // 1. Write SELF header
+  // 2. Write SELF entries
+  // 3. Write auth info
+  // 4. Write extended info
+  // 5. Copy ELF data with proper alignment
+  // 6. Calculate and write digests
+}
+
+} // namespace lld::elf
 
 static void setConfigs(Ctx &ctx, opt::InputArgList &args);
 static void readConfigs(Ctx &ctx, opt::InputArgList &args);
@@ -1835,6 +1924,34 @@ static void readConfigs(Ctx &ctx, opt::InputArgList &args) {
     } else {
       ErrAlways(ctx) << "cannot find version script " << arg->getValue();
     }
+
+  // PS4/Orbis-specific options
+  ctx.arg.orbisAuthInfo = args.getLastArgValue(OPT_auth_info);
+  ctx.arg.orbisEboot = args.hasArg(OPT_eboot);
+  ctx.arg.orbisPrx = args.hasArg(OPT_prx);
+  
+  // Parse -z options for PS4
+  for (auto *arg : args.filtered(OPT_z)) {
+    StringRef v = arg->getValue();
+    StringRef k, value;
+    std::tie(k, value) = v.split('=');
+    
+    if (k == "program-auth-id") {
+      if (value.getAsInteger(0, ctx.arg.orbisProgramAuthId))
+        ErrAlways(ctx) << "-z program-auth-id: invalid value: " << value;
+    } else if (k == "application-version") {
+      if (value.getAsInteger(0, ctx.arg.orbisAppVersion))
+        ErrAlways(ctx) << "-z application-version: invalid value: " << value;
+    } else if (k == "sdk-version") {
+      if (value.getAsInteger(0, ctx.arg.orbisSdkVersion))
+        ErrAlways(ctx) << "-z sdk-version: invalid value: " << value;
+    } else if (k == "firmware-version") {
+      if (value.getAsInteger(0, ctx.arg.orbisFirmwareVersion))
+        ErrAlways(ctx) << "-z firmware-version: invalid value: " << value;
+    } else if (k == "program-type") {
+      ctx.arg.orbisProgramType = value;
+    }
+  }
 }
 
 // Some Config members do not directly correspond to any particular

@@ -14,6 +14,7 @@
 #include "InputFiles.h"
 #include "LinkerScript.h"
 #include "MapFile.h"
+#include "Orbis.h"
 #include "OutputSections.h"
 #include "Relocations.h"
 #include "SymbolTable.h"
@@ -2025,6 +2026,14 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
     }
     ctx.out.programHeaders->size =
         sizeof(Elf_Phdr) * ctx.mainPart->phdrs.size();
+    
+    // PS4/Orbis: Populate scePhdrEntries for SELF generation
+    if (ctx.arg.osabi == ELFOSABI_PS4) {
+      scePhdrEntries.clear();
+      for (const auto& phdr : ctx.mainPart->phdrs) {
+        scePhdrEntries.push_back(phdr.get());
+      }
+    }
 
     // Find the TLS segment. This happens before the section layout loop so that
     // Android relocation packing can look up TLS symbol addresses. We only need

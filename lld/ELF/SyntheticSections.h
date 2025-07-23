@@ -700,6 +700,7 @@ public:
   void finalizeContents() override;
   void writeTo(uint8_t *buf) override;
   size_t getSize() const override { return size; }
+  bool isNeeded() const override;
 
 private:
   uint64_t size = 0;
