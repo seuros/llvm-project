@@ -40,7 +40,7 @@
 #include <time.h>
 
 // since Linux 4.5 and FreeBSD 13, but the Linux libc wrapper is only provided by glibc >= 2.27 and musl
-#if defined(__linux__)
+#if defined(__linux__) && !defined(PS4)
 #  if defined(_LIBCPP_GLIBC_PREREQ)
 #    if _LIBCPP_GLIBC_PREREQ(2, 27)
 #      define _LIBCPP_FILESYSTEM_USE_COPY_FILE_RANGE
@@ -246,7 +246,7 @@ bool copy_file_impl_copy_file_range(FileDescriptor& read_fd, FileDescriptor& wri
     return false;
   }
   // do not modify the fd positions as copy_file_impl_sendfile may be called after a partial copy
-#  if defined(__linux__)
+#  if defined(__linux__) && !defined(PS4)
   loff_t off_in  = 0;
   loff_t off_out = 0;
 #  else

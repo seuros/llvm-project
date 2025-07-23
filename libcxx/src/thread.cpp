@@ -18,6 +18,10 @@
 #  include <unistd.h> // for sysconf
 #endif
 
+#if defined(PS4)
+#  include <orbis/libkernel.h>
+#endif
+
 #if defined(__NetBSD__)
 #  pragma weak pthread_create // Do not create libpthread dependency
 #endif
