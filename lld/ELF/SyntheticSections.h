@@ -691,6 +691,21 @@ public:
   void finalizeContents() override;
 };
 
+// ----- Start OpenOrbis Changes -----
+template <class ELFT> class SceDynlibdataFingerprintSection final : public SyntheticSection {
+  LLVM_ELF_IMPORT_TYPES_ELFT(ELFT)
+
+public:
+  SceDynlibdataFingerprintSection(Ctx &);
+  void finalizeContents() override;
+  void writeTo(uint8_t *buf) override;
+  size_t getSize() const override { return size; }
+
+private:
+  uint64_t size = 0;
+};
+// ----- End OpenOrbis Changes -----
+
 // Outputs GNU Hash section. For detailed explanation see:
 // https://blogs.oracle.com/ali/entry/gnu_hash_elf_sections
 class GnuHashTableSection final : public SyntheticSection {
@@ -1524,6 +1539,9 @@ struct Partition {
   std::unique_ptr<VersionDefinitionSection> verDef;
   std::unique_ptr<SyntheticSection> verNeed;
   std::unique_ptr<VersionTableSection> verSym;
+  // ----- Start OpenOrbis Changes -----
+  std::unique_ptr<SyntheticSection> sceDynlibdataFingerprint;
+  // ----- End OpenOrbis Changes -----
 
   Partition(Ctx &ctx) : ctx(ctx) {}
   unsigned getNumber(Ctx &ctx) const { return this - &ctx.partitions[0] + 1; }

@@ -4445,7 +4445,10 @@ void elf::writeEhdr(Ctx &ctx, uint8_t *buf, Partition &part) {
   eHdr->e_ident[EI_DATA] =
       ELFT::Endianness == endianness::little ? ELFDATA2LSB : ELFDATA2MSB;
   eHdr->e_ident[EI_VERSION] = EV_CURRENT;
-  eHdr->e_ident[EI_OSABI] = ctx.arg.osabi;
+  // ----- Start OpenOrbis Changes -----
+  // PS4 masquerades as FreeBSD in the ELF header
+  eHdr->e_ident[EI_OSABI] = (ctx.arg.osabi == ELFOSABI_PS4) ? ELFOSABI_FREEBSD : ctx.arg.osabi;
+  // ----- End OpenOrbis Changes -----
   eHdr->e_ident[EI_ABIVERSION] = getAbiVersion(ctx);
   eHdr->e_machine = ctx.arg.emachine;
   eHdr->e_version = EV_CURRENT;

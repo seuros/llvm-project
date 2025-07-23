@@ -2795,6 +2795,17 @@ static uint64_t getEntryAddr(Ctx &ctx) {
 }
 
 static uint16_t getELFType(Ctx &ctx) {
+  // ----- Start OpenOrbis Changes -----
+  if (ctx.arg.osabi == ELFOSABI_PS4) {
+    if (ctx.arg.isPic) {
+      if (getEntryAddr(ctx) != 0)
+        return ET_SCE_EXEC_ASLR;
+      else
+        return ET_SCE_DYNAMIC;
+    }
+    return ET_SCE_EXEC;
+  }
+  // ----- End OpenOrbis Changes -----
   if (ctx.arg.isPic)
     return ET_DYN;
   if (ctx.arg.relocatable)

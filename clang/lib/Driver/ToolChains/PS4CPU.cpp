@@ -567,14 +567,13 @@ SanitizerMask toolchains::PS5CPU::getSupportedSanitizers() const {
 void toolchains::PS4PS5Base::addClangTargetOptions(
     const ArgList &DriverArgs, ArgStringList &CC1Args,
     Action::OffloadKind DeviceOffloadingKind) const {
-  // PS4/PS5 do not use init arrays.
-  if (DriverArgs.hasArg(options::OPT_fuse_init_array)) {
-    Arg *A = DriverArgs.getLastArg(options::OPT_fuse_init_array);
-    getDriver().Diag(clang::diag::err_drv_unsupported_opt_for_target)
-        << A->getAsString(DriverArgs) << getTriple().str();
-  }
-
-  CC1Args.push_back("-fno-use-init-array");
+  // ----- Start OpenOrbis Changes -----
+  // PS4/PS5 now use init arrays by default (OpenOrbis)
+  // Only disable init arrays if explicitly requested
+  if (!DriverArgs.hasArg(options::OPT_fuse_init_array,
+                         options::OPT_fno_use_init_array))
+    CC1Args.push_back("-fuse-init-array");
+  // ----- End OpenOrbis Changes -----
 
   // Default to `hidden` visibility for PS5.
   if (getTriple().isPS5() &&
